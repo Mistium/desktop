@@ -18,7 +18,12 @@ require('./context-menu');
 require('./menu-bar');
 require('./crash-messages');
 
-app.enableSandbox();
+// Disable Electron sandbox if explicitly requested so Node APIs (require) are available in renderer.
+if (!process.env.FORCE_ENABLE_SANDBOX) {
+  // Intentionally not calling app.enableSandbox();
+} else {
+  app.enableSandbox();
+}
 
 // Allows certain versions of Scratch Link to work without an internet connection
 // https://github.com/LLK/scratch-desktop/blob/4b462212a8e406b15bcf549f8523645602b46064/src/main/index.js#L45

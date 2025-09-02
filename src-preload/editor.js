@@ -1,6 +1,23 @@
-const {contextBridge, ipcRenderer} = require('electron');
+const {ipcRenderer, contextBridge} = require('electron');
 
-contextBridge.exposeInMainWorld('EditorPreload', {
+// Inline expose helper (avoid external require for bridge.js which may fail under sandboxed preload resolution)
+function expose(key, value) {
+  try {
+    if (process.contextIsolated && contextBridge && typeof contextBridge.exposeInMainWorld === 'function') {
+      contextBridge.exposeInMainWorld(key, value);
+    } else {
+      if (!Object.getOwnPropertyDescriptor(window, key)) {
+        Object.defineProperty(window, key, { value, configurable: true, enumerable: false, writable: false });
+      } else {
+        window[key] = value;
+      }
+    }
+  } catch (e) {
+    console.error('expose failed', key, e);
+  }
+}
+
+expose('EditorPreload', {
   isInitiallyFullscreen: () => ipcRenderer.sendSync('is-initially-fullscreen'),
   getInitialFile: () => ipcRenderer.invoke('get-initial-file'),
   getFile: (id) => ipcRenderer.invoke('get-file', id),
@@ -66,7 +83,7 @@ ipcRenderer.on('enumerate-media-devices', (e) => {
     });
 });
 
-contextBridge.exposeInMainWorld('PromptsPreload', {
+expose('PromptsPreload', {
   alert: (message) => ipcRenderer.sendSync('alert', message),
   confirm: (message) => ipcRenderer.sendSync('confirm', message),
 });
